@@ -94,7 +94,7 @@ nUMI_spot <- colSums(spots)
 names(nUMI_spot) <- colnames(spots)
 
 #preprocess the input data
-processed_input<-SONAR.preprocess(sc_count=ref,sc_cell_type=typeanno,sc_nUMI=nUMI,sp_coords=coords,sp_count=spots,sp_nUMI=nUMI_spot,cores=8)
+processed_input<-SONAR.preprocess(sc_count=ref,sc_cell_type=typeanno,sc_nUMI=nUMI,sp_coords=coords,sp_count=spots,sp_nUMI=nUMI_spot,cores=8,exp_cutoff_plat = 0.000125, fc_cutoff_plat = 0.5, exp_cutoff_reg = 0.0002, fc_cutoff_reg = 0.75)
 
 #deliver the preprocessed data to SONAR
 SONAR.deliver(processed_data=processed_input,path=code_path)
