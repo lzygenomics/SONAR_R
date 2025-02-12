@@ -14,7 +14,11 @@ SONAR.preprocess(
   cores = 8,
   type_min_cell = 0,
   spot_min_UMI = 100,
-  preclus_resolution = 0.7
+  preclus_resolution = 0.7,
+  exp_cutoff_plat = 0.000125,
+  fc_cutoff_plat = 0.5,
+  exp_cutoff_reg = 2e-04,
+  fc_cutoff_reg = 0.75
 )
 }
 \arguments{
@@ -37,6 +41,14 @@ SONAR.preprocess(
 \item{spot_min_UMI}{Specifies a threshold to filter out spots with fewer UMIs}
 
 \item{preclus_resolution}{Specifies the resolution of the preclustering}
+
+\item{fc_cutoff_plat}{minimum log-fold-change (across cell types) for genes to be included in the platform effect normalization step.}
+
+\item{fc_cutoff_reg}{minimum log-fold-change (across cell types) for genes to be included in the regression.}
+
+\item{expr_cutoff_reg}{minimum normalized gene expression for genes to be included in the regression.}
+
+\item{expr_cutoff_plat}{minimum normalized gene expression for genes to be included in the platform effect normalization step.}
 }
 \value{
 preprocessed data

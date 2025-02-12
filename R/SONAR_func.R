@@ -11,14 +11,18 @@
 #' @param type_min_cell Specifies a threshold to filter out cell types with a smaller number of cells
 #' @param spot_min_UMI Specifies a threshold to filter out spots with fewer UMIs
 #' @param preclus_resolution Specifies the resolution of the preclustering
+#' @param expr_cutoff_reg minimum normalized gene expression for genes to be included in the regression.
+#' @param fc_cutoff_reg minimum log-fold-change (across cell types) for genes to be included in the regression.
+#' @param expr_cutoff_plat minimum normalized gene expression for genes to be included in the platform effect normalization step.
+#' @param fc_cutoff_plat minimum log-fold-change (across cell types) for genes to be included in the platform effect normalization step.
 #' @import methods Seurat utils Matrix
 #' @return preprocessed data
 #' @export
 
-SONAR.preprocess<-function(sc_count,sc_cell_type,sc_nUMI,sp_coords,sp_count,sp_nUMI,cores=8,type_min_cell=0,spot_min_UMI=100,preclus_resolution=0.7){
+SONAR.preprocess<-function(sc_count,sc_cell_type,sc_nUMI,sp_coords,sp_count,sp_nUMI,cores=8,type_min_cell=0,spot_min_UMI=100,preclus_resolution=0.7,exp_cutoff_plat = 0.000125, fc_cutoff_plat = 0.5, exp_cutoff_reg = 0.0002, fc_cutoff_reg = 0.75){
   reference <- Reference(sc_count,sc_cell_type,sc_nUMI)
   puck <- SpatialRNA(sp_coords,sp_count,sp_nUMI)
-  SONAR_obj <- create.SONAR(puck, reference, max_cores = cores, CELL_MIN_INSTANCE = type_min_cell,UMI_min = spot_min_UMI)
+  SONAR_obj <- create.SONAR(puck, reference, max_cores = cores, CELL_MIN_INSTANCE = type_min_cell,UMI_min = spot_min_UMI,gene_cutoff = exp_cutoff_plat, fc_cutoff = fc_cutoff_plat, gene_cutoff_reg = exp_cutoff_reg, fc_cutoff_reg = fc_cutoff_reg)
   SONAR_obj <-fitBulk(SONAR_obj)
   #u[j,t] is preprocessed type t,gene j 's expression
   u <- SONAR_obj@cell_type_info$renorm[[1]]

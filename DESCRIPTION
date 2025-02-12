@@ -1,7 +1,7 @@
 Package: SONAR
 Type: Package
 Title: SONAR for spatial transcriptomics deconvolution
-Version: 1.0.0
+Version: 1.1.0
 Author: Zhiyuan Liu
 Maintainer: <lzy_math@163.com>
 Description: details in github
@@ -28,7 +28,7 @@ Imports:
   tibble,
   methods,
   reshape2
-RoxygenNote: 7.1.1
+RoxygenNote: 7.3.2
 Suggests: 
     rmarkdown,
     knitr
