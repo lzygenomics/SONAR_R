@@ -1,6 +1,18 @@
-# SONAR
-SONAR is the algorithm of cell-type deconvolution for spatial transcriptomics
+# SONAR: A Probabilistic Framework for Cell-Type Deconvolution in Spatial Transcriptomics
 
+SONAR is an algorithm developed for cell-type deconvolution in spatial transcriptomics. It integrates spatial information in a balanced way to enhance performance and robustness.
+
+## Key Features
+
+- **Enhanced Signal-to-Noise Ratio**  
+  Utilizes the similarity of spatial locations to boost the signal-to-noise ratio, helping to extract meaningful patterns from the data.
+
+- **Local Spatial Heterogeneity Consideration**  
+  Incorporates local spatial heterogeneity to avoid over-reliance on spatial information, ensuring that the inherent biological diversity is accurately captured.
+
+- **Robust Probabilistic Framework**  
+  Built on a probabilistic framework, SONAR delivers more robust and reliable results compared to deep learning–based approaches.
+  
 ## Installation
 #library(devtools)
 
