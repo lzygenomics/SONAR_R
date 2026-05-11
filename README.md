@@ -66,11 +66,9 @@ In R-only mode, the original MATLAB backend is not available. Results are writte
 Example:
 
 ```r
-SONAR.deconvolute(
-  fname = file.path(code_path, "SONAR_main.m"),
+SONAR.deconvolute.native(
   path = code_path,
   h = h,
-  backend = "native",
   cores = 8
 )
 ```
@@ -96,8 +94,10 @@ install.packages(c("matlabr", "R.matlab", "rmarkdown", "knitr"))
 Native backend:
 
 ```r
-SONAR.deconvolute(..., backend = "native")
+SONAR.deconvolute.native(path = code_path, h = h)
 ```
+
+For backward compatibility, `SONAR.deconvolute(..., backend = "native")` is also supported, but the `fname` argument is ignored by the native backend.
 
 Original MATLAB backend:
 
