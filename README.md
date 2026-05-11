@@ -14,31 +14,109 @@ SONAR is an algorithm developed for cell-type deconvolution in spatial transcrip
   Built on a probabilistic framework, SONAR delivers more robust and reliable results compared to deep learning–based approaches.
   
 ## Installation
-#library(devtools)
 
-devtools:: install_github("lzygenomics/SONAR")
+```r
+# install.packages("devtools")
+devtools::install_github("lzygenomics/SONAR_R")
+```
 
-## Dependence
+The installed package name is still `SONAR`:
 
-- R version >= 4.0.5.
-- R packages: 
-  - this.path>=0.5.1; Matrix>=1.3.4; data.table>=1.14.0; Seurat>=4.0.3;  matlabr=1.5.2; R.matlab=3.7.0
-- MATLAB is no longer required for the default deconvolution workflow.
-  - The default `backend = "native"` uses R/Rcpp plus base R's `optim(method = "L-BFGS-B")` to solve the non-negative spot-wise optimization problem.
-  - The original MATLAB workflow is still available with `backend = "matlab"` if MATLAB and `matlabr` are installed.
+```r
+library(SONAR)
+```
+
+## Dependencies
+
+SONAR_R supports two installation modes.
+
+### Option 1: R-only native backend
+
+This is the recommended setup for users who do not have MATLAB. It uses the new R/Rcpp implementation and runs deconvolution with `backend = "native"`. This mode does not require MATLAB, `matlabr`, or `R.matlab`.
+
+Required:
+
+- R version >= 4.0.5
+- R packages imported by SONAR_R:
+  - `this.path`
+  - `Matrix`
+  - `data.table`
+  - `Seurat`
+  - `Rcpp`
+  - `gtools`
+  - `ggplot2`
+  - `scatterpie`
+  - `viridis`
+  - `corrplot`
+  - `ggcorrplot`
+  - `quadprog`
+  - `readr`
+  - `tibble`
+  - `methods`
+  - `reshape2`
+
+For rendering the example R Markdown file, also install:
+
+```r
+install.packages(c("rmarkdown", "knitr"))
+```
+
+In R-only mode, the original MATLAB backend is not available. Results are written to `SONAR_results.csv` when `R.matlab` is not installed.
+
+Example:
+
+```r
+SONAR.deconvolute(
+  fname = file.path(code_path, "SONAR_main.m"),
+  path = code_path,
+  h = h,
+  backend = "native",
+  cores = 8
+)
+```
+
+### Option 2: R + MATLAB compatible setup
+
+Use this setup only if you want to keep both the new native R/Rcpp backend and the original MATLAB backend.
+
+Additional requirements:
+
+- MATLAB >= R2019a
+- MATLAB Optimization Toolbox, required by the original `fmincon` workflow
+- R packages:
+  - `matlabr`
+  - `R.matlab`
+
+Install optional R packages:
+
+```r
+install.packages(c("matlabr", "R.matlab", "rmarkdown", "knitr"))
+```
+
+Native backend:
+
+```r
+SONAR.deconvolute(..., backend = "native")
+```
+
+Original MATLAB backend:
+
+```r
+SONAR.deconvolute(..., backend = "matlab")
+```
 
 ## Run SONAR
 
-1. Install the dependence (pay attention that you need to install the **MATLAB**)
+1. Install the dependencies using one of the two configurations above.
 
-2. Install SONAR
+2. Install SONAR_R from this repository.
 
-3. Download the SONAR files (This **files structure** will help you run on the custom data)
+3. Download or clone the SONAR_R files. This file structure helps you run the example and prepare custom data.
 
-4. Open **Example/SONAR-entrance.Rmd** , you could run and get the example results.
+4. Open **Example/SONAR-entrance.Rmd** and run the example. The example uses `backend = "native"` by default and does not require MATLAB.
 
 For running the custom dataset, you could modify the data preparation stage in **Example/SONAR-entrance.Rmd** with the same format, 
-and substitude the single cell data and spatial data in this files structure
+and substitute the single-cell data and spatial data in this file structure.
 
 ## Files Annotation
 
@@ -66,7 +144,7 @@ and substitude the single cell data and spatial data in this files structure
 
   *These files store the core code, and store the preprocessed data that delivered to SONAR*.
   
-## A brif Example
+## A Brief Example
 
 Please Follow the Example/SONAR-entrance.Rmd
 
