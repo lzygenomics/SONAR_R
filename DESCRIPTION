@@ -14,8 +14,7 @@ Imports:
 	Matrix, 
 	data.table, 
 	Seurat,
-	matlabr, 
-	R.matlab,
+  Rcpp,
   gtools,
   ggplot2,
   scatterpie,
@@ -28,8 +27,12 @@ Imports:
   tibble,
   methods,
   reshape2
+LinkingTo:
+  Rcpp
 RoxygenNote: 7.3.2
 Suggests: 
+    matlabr,
+    R.matlab,
     rmarkdown,
     knitr
 VignetteBuilder: knitr

@@ -11,9 +11,9 @@
 #' @param type_min_cell Specifies a threshold to filter out cell types with a smaller number of cells
 #' @param spot_min_UMI Specifies a threshold to filter out spots with fewer UMIs
 #' @param preclus_resolution Specifies the resolution of the preclustering
-#' @param expr_cutoff_reg minimum normalized gene expression for genes to be included in the regression.
+#' @param exp_cutoff_reg minimum normalized gene expression for genes to be included in the regression.
 #' @param fc_cutoff_reg minimum log-fold-change (across cell types) for genes to be included in the regression.
-#' @param expr_cutoff_plat minimum normalized gene expression for genes to be included in the platform effect normalization step.
+#' @param exp_cutoff_plat minimum normalized gene expression for genes to be included in the platform effect normalization step.
 #' @param fc_cutoff_plat minimum log-fold-change (across cell types) for genes to be included in the platform effect normalization step.
 #' @import methods Seurat utils Matrix
 #' @return preprocessed data
@@ -78,27 +78,184 @@ SONAR.deliver<-function(processed_data,path){
   }
   return(print("deliver complete!"))
 }
+#' SONAR.deconvolute.native
+#'
+#' @param path the path to preprocessed data
+#' @param h bandwidth
+#' @param cores the number of CPU threads used for spot-wise optimization
+#' @param maxit maximum iterations for each spot-wise optimizer
+#' @param lower lower bound used for all optimized parameters
+#' @param seed optional random seed for optimizer initialization
+#' @param verbose show progress
+#' @param return_result return the cell-type proportion matrix instead of a status code
+#' @return the state of deconvolution
+#' @export
+
+SONAR.deconvolute.native<-function(path,h,cores = max(1, parallel::detectCores(logical = FALSE) - 1, na.rm = TRUE),
+                                   maxit = 1000, lower = 1e-8, seed = NULL,
+                                   verbose = TRUE, return_result = FALSE)
+{
+  stopifnot(dir.exists(path))
+  input_files <- file.path(path, c("u.txt", "y.txt", "N.txt", "coord.txt", "label.txt"))
+  if (!all(file.exists(input_files))) {
+    stop("missing SONAR input files: ", paste(input_files[!file.exists(input_files)], collapse = ", "))
+  }
+
+  read_matrix <- function(file) {
+    as.matrix(utils::read.csv(file, check.names = FALSE, row.names = 1))
+  }
+
+  u_raw <- read_matrix(file.path(path, "u.txt"))
+  y_raw <- read_matrix(file.path(path, "y.txt"))
+  N <- as.numeric(utils::read.csv(file.path(path, "N.txt"), check.names = FALSE, row.names = 1)[[1]])
+  coord <- read_matrix(file.path(path, "coord.txt"))
+  label <- as.numeric(utils::read.csv(file.path(path, "label.txt"), check.names = FALSE, row.names = 1)[[1]])
+
+  if (nrow(u_raw) != nrow(y_raw)) {
+    stop("u.txt and y.txt must have the same genes in rows")
+  }
+  if (ncol(y_raw) != length(N) || ncol(y_raw) != nrow(coord) || ncol(y_raw) != length(label)) {
+    stop("spot counts, N, coord, and label dimensions do not match")
+  }
+
+  u <- rbind(Intercept = rep(1, nrow(u_raw)), t(u_raw))
+  y <- t(y_raw)
+  n_spots <- length(N)
+
+  D <- as.matrix(stats::dist(coord))
+  same_label <- outer(label, label, "==")
+  w <- matrix(0, n_spots, n_spots)
+  neighbor <- D < h & same_label
+  w[neighbor] <- (1 - (D[neighbor] / h)^2)^2
+
+  norm_y <- y
+  y_sums <- rowSums(norm_y)
+  if (any(y_sums <= 0)) {
+    stop("all spots must have positive total expression")
+  }
+  norm_y <- norm_y / y_sums
+  norm_lengths <- sqrt(rowSums(norm_y^2))
+  cosine_sim <- tcrossprod(norm_y) / tcrossprod(norm_lengths)
+  cosine_sim <- pmax(pmin(cosine_sim, 1), -1)
+  cos_dist <- 1 - cosine_sim
+  w <- w^(100 * cos_dist)
+
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  xindex <- nrow(u)
+  x0 <- c(stats::runif(xindex), 10)
+
+  optimize_one <- function(i) {
+    fit <- stats::optim(
+      par = x0,
+      fn = sonar_negloglik_cpp,
+      gr = sonar_grad_cpp,
+      method = "L-BFGS-B",
+      lower = rep(lower, xindex + 1),
+      control = list(maxit = maxit),
+      u = u,
+      N = N,
+      w = w,
+      y = y,
+      spot = i
+    )
+    if (fit$convergence != 0 && verbose) {
+      warning("optimizer did not fully converge for spot ", i, ": code ", fit$convergence,
+              call. = FALSE, immediate. = TRUE)
+    }
+    fit$par
+  }
+
+  if (verbose) {
+    message("Running SONAR native deconvolution with ", cores, " core(s)")
+  }
+  if (cores > 1 && .Platform$OS.type != "windows") {
+    par_list <- parallel::mclapply(seq_len(n_spots), optimize_one, mc.cores = cores)
+  } else {
+    par_list <- lapply(seq_len(n_spots), optimize_one)
+  }
+
+  JIE <- do.call(rbind, par_list)
+  JIE <- JIE[, -c(1, ncol(JIE)), drop = FALSE]
+  row_sums <- rowSums(JIE)
+  if (any(row_sums <= 0)) {
+    stop("native optimizer returned non-positive cell-type sums")
+  }
+  JIE <- JIE / row_sums
+  colnames(JIE) <- colnames(u_raw)
+  rownames(JIE) <- rownames(coord)
+
+  results_file <- file.path(path, "SONAR_results.mat")
+  csv_results_file <- file.path(path, "SONAR_results.csv")
+  tryCatch(
+    {
+      if (!requireNamespace("R.matlab", quietly = TRUE)) {
+        stop("R.matlab is not installed")
+      }
+      R.matlab::writeMat(results_file, JIE = JIE)
+      if (verbose) {
+        message("Data successfully saved in MAT format.")
+      }
+    },
+    error = function(e) {
+      if (verbose) {
+        message("Failed to save in MAT format: ", conditionMessage(e))
+        message("Saving data in CSV format instead.")
+      }
+      utils::write.csv(JIE, csv_results_file)
+    }
+  )
+
+  if (verbose) {
+    message("Complete")
+  }
+  if (return_result) {
+    return(JIE)
+  }
+  return(0)
+}
+
 #' SONAR.deconvolute
 #'
 #' @param fname the path to SONAR's MATLAB core codes
 #' @param path the path to preprocessed data
 #' @param h bandwidth
-#' @param verbose show the command in MATLAB
+#' @param verbose show the command/progress
 #' @param desktop Determines whether the matlab run process is displayed
 #' @param splash Determines whether the matlab run process is displayed
 #' @param display Determines whether the matlab run process is displayed
 #' @param wait wait the SONAR's deconvolution complete
 #' @param single_thread Determine whether to use only single threads
-#' @import matlabr
+#' @param backend deconvolution backend: native R/Rcpp or MATLAB
+#' @param cores the number of CPU threads used by the native backend
+#' @param maxit maximum iterations for each native spot-wise optimizer
+#' @param lower lower bound used by the native optimizer
+#' @param seed optional random seed for native optimizer initialization
 #' @return the state of deconvolution
 #' @export
 
 SONAR.deconvolute<-function (fname,path,h,verbose = TRUE, desktop = FALSE, splash = FALSE,
-                             display = FALSE, wait = FALSE, single_thread = FALSE)
+                             display = FALSE, wait = FALSE, single_thread = FALSE,
+                             backend = c("native", "matlab"),
+                             cores = max(1, parallel::detectCores(logical = FALSE) - 1, na.rm = TRUE),
+                             maxit = 1000, lower = 1e-8, seed = NULL)
 {
+  backend <- match.arg(backend)
+  if (backend == "native") {
+    if (single_thread) {
+      cores <- 1
+    }
+    return(SONAR.deconvolute.native(path = path, h = h, cores = cores, maxit = maxit,
+                                    lower = lower, seed = seed, verbose = verbose))
+  }
+
   stopifnot(file.exists(fname))
-  matcmd = get_matlab(desktop = desktop, splash = splash,
-                      display = display, wait = wait, single_thread = single_thread)
+  if (!requireNamespace("matlabr", quietly = TRUE)) {
+    stop("The MATLAB backend requires the matlabr package. Use backend = 'native' to avoid MATLAB.")
+  }
+  matcmd = matlabr::get_matlab(desktop = desktop, splash = splash,
+                               display = display, wait = wait, single_thread = single_thread)
   cmd=paste0("userpath('",path,"');","thepath='",path,"';h=",h,";","SONAR_main;","exit")
   cmd = paste0(matcmd, '\"',cmd, '\"')
   if (verbose) {

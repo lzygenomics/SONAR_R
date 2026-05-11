@@ -23,8 +23,9 @@ devtools:: install_github("lzygenomics/SONAR")
 - R version >= 4.0.5.
 - R packages: 
   - this.path>=0.5.1; Matrix>=1.3.4; data.table>=1.14.0; Seurat>=4.0.3;  matlabr=1.5.2; R.matlab=3.7.0
-- MATLAB version >= R2019a 
-  - Just install the MATLAB, subsequent operations do not require you to use the MATLAB language
+- MATLAB is no longer required for the default deconvolution workflow.
+  - The default `backend = "native"` uses R/Rcpp plus base R's `optim(method = "L-BFGS-B")` to solve the non-negative spot-wise optimization problem.
+  - The original MATLAB workflow is still available with `backend = "matlab"` if MATLAB and `matlabr` are installed.
 
 ## Run SONAR
 

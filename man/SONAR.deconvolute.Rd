@@ -13,7 +13,12 @@ SONAR.deconvolute(
   splash = FALSE,
   display = FALSE,
   wait = FALSE,
-  single_thread = FALSE
+  single_thread = FALSE,
+  backend = c("native", "matlab"),
+  cores = max(1, parallel::detectCores(logical = FALSE) - 1, na.rm = TRUE),
+  maxit = 1000,
+  lower = 1e-08,
+  seed = NULL
 )
 }
 \arguments{
@@ -23,7 +28,7 @@ SONAR.deconvolute(
 
 \item{h}{bandwidth}
 
-\item{verbose}{show the command in MATLAB}
+\item{verbose}{show the command/progress}
 
 \item{desktop}{Determines whether the matlab run process is displayed}
 
@@ -34,6 +39,16 @@ SONAR.deconvolute(
 \item{wait}{wait the SONAR's deconvolution complete}
 
 \item{single_thread}{Determine whether to use only single threads}
+
+\item{backend}{deconvolution backend: native R/Rcpp or MATLAB}
+
+\item{cores}{the number of CPU threads used by the native backend}
+
+\item{maxit}{maximum iterations for each native spot-wise optimizer}
+
+\item{lower}{lower bound used by the native optimizer}
+
+\item{seed}{optional random seed for native optimizer initialization}
 }
 \value{
 the state of deconvolution

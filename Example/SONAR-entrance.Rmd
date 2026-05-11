@@ -9,8 +9,6 @@ library(here)
 library(Matrix)
 library(data.table)
 library(Seurat)
-library(matlabr)
-library(R.matlab)
 ```
 ## Set paths / Prepare the Input
 
@@ -109,12 +107,17 @@ h <- 1.2*mindist
 ## Start Deconvolution and Collect results
 ```{r,warning=FALSE}
 #start deconvolution
-SONAR.deconvolute(fname = paste0(code_path,"SONAR_main.m"),path=code_path,h,wait = TRUE)
+SONAR.deconvolute(fname = paste0(code_path,"SONAR_main.m"),path=code_path,h,wait = TRUE, backend = "native")
 ## if return 0, deconvolution has done
 
 #collect results
-SONAR.results <- readMat(paste(code_path,"SONAR_results.mat",sep = ""))
-SONAR.results <- SONAR.results$JIE
+mat_results <- paste(code_path,"SONAR_results.mat",sep = "")
+csv_results <- paste(code_path,"SONAR_results.csv",sep = "")
+if (file.exists(mat_results) && requireNamespace("R.matlab", quietly = TRUE)) {
+  SONAR.results <- R.matlab::readMat(mat_results)$JIE
+} else {
+  SONAR.results <- as.matrix(read.csv(csv_results, row.names = 1, check.names = FALSE))
+}
 u <- fread(paste0(code_path,"u.txt"))
 u[,1] <- NULL
 colnames(SONAR.results) <- colnames(u)

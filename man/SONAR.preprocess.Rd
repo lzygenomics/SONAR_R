@@ -46,9 +46,9 @@ SONAR.preprocess(
 
 \item{fc_cutoff_reg}{minimum log-fold-change (across cell types) for genes to be included in the regression.}
 
-\item{expr_cutoff_reg}{minimum normalized gene expression for genes to be included in the regression.}
+\item{exp_cutoff_reg}{minimum normalized gene expression for genes to be included in the regression.}
 
-\item{expr_cutoff_plat}{minimum normalized gene expression for genes to be included in the platform effect normalization step.}
+\item{exp_cutoff_plat}{minimum normalized gene expression for genes to be included in the platform effect normalization step.}
 }
 \value{
 preprocessed data
