@@ -106,8 +106,8 @@ h <- 1.2*mindist
 ```
 ## Start Deconvolution and Collect results
 ```{r,warning=FALSE}
-#start deconvolution
-SONAR.deconvolute(fname = paste0(code_path,"SONAR_main.m"),path=code_path,h,wait = TRUE, backend = "native")
+#start deconvolution with the native R/Rcpp backend
+SONAR.deconvolute.native(path = code_path, h = h, cores = 8)
 ## if return 0, deconvolution has done
 
 #collect results
